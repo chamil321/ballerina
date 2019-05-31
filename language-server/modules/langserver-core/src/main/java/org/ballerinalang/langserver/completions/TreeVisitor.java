@@ -37,7 +37,6 @@ import org.ballerinalang.langserver.completions.util.positioning.resolvers.Resou
 import org.ballerinalang.langserver.completions.util.positioning.resolvers.ServiceScopeResolver;
 import org.ballerinalang.langserver.completions.util.positioning.resolvers.TopLevelNodeScopeResolver;
 import org.ballerinalang.model.Whitespace;
-import org.ballerinalang.model.elements.Flag;
 import org.ballerinalang.model.elements.PackageID;
 import org.ballerinalang.model.tree.Node;
 import org.ballerinalang.model.tree.TopLevelNode;
@@ -210,34 +209,27 @@ public class TreeVisitor extends LSNodeVisitor {
 
     @Override
     public void visit(BLangFunction funcNode) {
-        String funcName = funcNode.getName().getValue();
+        String functionName = funcNode.getName().getValue();
         SymbolEnv funcEnv = SymbolEnv.createFunctionEnv(funcNode, funcNode.symbol.scope, this.symbolEnv);
         CursorPositionResolver cpr = CursorPositionResolvers.getResolverByClass(this.cursorPositionResolver);
+
+        funcNode.annAttachments.forEach(annotationAttachment -> this.acceptNode(annotationAttachment, funcEnv));
+
+        boolean withinParamContext = CompletionVisitorUtil
+                .isWithinParameterContext(functionName, UtilSymbolKeys.FUNCTION_KEYWORD_KEY, funcEnv, lsContext, this);
         DiagnosticPos functionPos = CommonUtil.clonePosition(funcNode.getPosition());
-
-        if (!funcNode.flagSet.contains(Flag.WORKER)) {
-            funcNode.annAttachments.forEach(annotationAttachment -> this.acceptNode(annotationAttachment, funcEnv));
-            boolean withinParamContext = CompletionVisitorUtil
-                    .isWithinParameterContext(funcName, UtilSymbolKeys.FUNCTION_KEYWORD_KEY, funcEnv, lsContext, this);
-            if (withinParamContext) {
-                this.lsContext.put(CompletionKeys.IN_FUNCTION_PARAMETER_CONTEXT_KEY, true);
-                return;
-            }
-            if (!funcNode.annAttachments.isEmpty()) {
-                BLangAnnotationAttachment lastItem = CommonUtil.getLastItem(funcNode.annAttachments);
-                List<Whitespace> wsList = new ArrayList<>(funcNode.getWS());
-                String[] firstWSItem = wsList.get(0).getWs().split(CommonUtil.LINE_SEPARATOR_SPLIT);
-                int precedingNewLines = firstWSItem.length - 1;
-                functionPos.sLine = lastItem.pos.eLine + precedingNewLines;
-                functionPos.sCol = firstWSItem[firstWSItem.length - 1].length() + 1;
-            }
-        } else if (funcNode.flagSet.contains(Flag.WORKER) && CompletionVisitorUtil
-                .isWithinWorkerReturnContext(this.symbolEnv, this.lsContext, this, funcNode)) {
-            return;
+        if (!funcNode.annAttachments.isEmpty()) {
+            BLangAnnotationAttachment lastItem = CommonUtil.getLastItem(funcNode.annAttachments);
+            List<Whitespace> wsList = new ArrayList<>(funcNode.getWS());
+            String[] firstWSItem = wsList.get(0).getWs().split(CommonUtil.LINE_SEPARATOR_SPLIT);
+            int precedingNewLines = firstWSItem.length - 1;
+            functionPos.sLine = lastItem.pos.eLine + precedingNewLines;
+            functionPos.sCol = firstWSItem[firstWSItem.length - 1].length() + 1;
         }
-        boolean cursorBeforeNode = cpr.isCursorBeforeNode(functionPos, this, this.lsContext, funcNode, funcNode.symbol);
+        boolean cursorBeforeNode = cpr.isCursorBeforeNode(functionPos, this, this.lsContext, funcNode,
+                funcNode.symbol);
 
-        if (terminateVisitor || cursorBeforeNode) {
+        if (terminateVisitor || cursorBeforeNode || withinParamContext) {
             return;
         }
 
@@ -487,7 +479,7 @@ public class TreeVisitor extends LSNodeVisitor {
                 && serviceFields.isEmpty()
                 && CompletionVisitorUtil.isCursorWithinBlock(serviceNode.getPosition(), serviceEnv, this.lsContext,
                 this);
-        boolean cursorWithinAttachedExprs = CompletionVisitorUtil.cursorWithinServiceExpressionList(serviceNode,
+        boolean cursorWithinAttachedExprs = CompletionVisitorUtil.cusrsorWithinServiceExpressionList(serviceNode,
                 serviceEnv, this.lsContext, this);
 
         if (cpr.isCursorBeforeNode(serviceNode.getPosition(), this, this.lsContext, serviceNode, serviceNode.symbol)

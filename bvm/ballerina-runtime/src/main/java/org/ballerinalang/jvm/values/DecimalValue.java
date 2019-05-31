@@ -159,7 +159,7 @@ public class DecimalValue {
                decimalValue.compareTo(BLangConstants.BINT_MIN_VALUE_BIG_DECIMAL_RANGE_MIN) > 0;
     }
 
-    public int byteValue() {
+    public long byteValue() {
         switch (valueKind) {
             case NOT_A_NUMBER:
                 throw new BallerinaException(BallerinaErrorReasons.NUMBER_CONVERSION_ERROR,
@@ -177,7 +177,7 @@ public class DecimalValue {
             throw new BallerinaException(BallerinaErrorReasons.NUMBER_CONVERSION_ERROR,
                                          "'decimal' value '" + value + "' cannot be converted to 'byte'");
         }
-        return (int) intVal;
+        return intVal;
     }
 
     private static boolean isByteLiteral(long longValue) {

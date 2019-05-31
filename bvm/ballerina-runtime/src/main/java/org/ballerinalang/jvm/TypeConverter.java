@@ -132,16 +132,12 @@ public class TypeConverter {
         throw errorFunc.get();
     }
 
-    public static int intToByte(long sourceVal) {
-        if (!isByteLiteral(sourceVal)) {
-            throw BallerinaErrors.createNumericConversionError(sourceVal, BTypes.typeByte);
-        }
-        return ((Long) sourceVal).intValue();
-    }
-
-    static int anyToByte(Object sourceVal, Supplier<ErrorValue> errorFunc) {
+    static long anyToByte(Object sourceVal, Supplier<ErrorValue> errorFunc) {
         if (sourceVal instanceof Long) {
-            return intToByte((Long) sourceVal);
+            if (!isByteLiteral((Long) sourceVal)) {
+                throw BallerinaErrors.createNumericConversionError(sourceVal, BTypes.typeByte);
+            }
+            return (long) sourceVal;
         } else if (sourceVal instanceof Double) {
             Double value = (Double) sourceVal;
             if (Double.isNaN(value) || Double.isInfinite(value)) {
@@ -151,19 +147,17 @@ public class TypeConverter {
             if (!isByteLiteral(intVal)) {
                 throw BallerinaErrors.createNumericConversionError(sourceVal, BTypes.typeByte);
             }
-            return (int) intVal;
+            return intVal;
 
         } else if (sourceVal instanceof Byte) {
-            return (byte) sourceVal;
-        } else if (sourceVal instanceof Integer) {
-            return (int) sourceVal;
+            return (long) sourceVal;
         } else if (sourceVal instanceof Boolean) {
             return ((Boolean) sourceVal ? 0 : 1);
         } else if (sourceVal instanceof DecimalValue) {
             if (!isByteLiteral(((DecimalValue) sourceVal).intValue())) {
                 throw BallerinaErrors.createNumericConversionError(sourceVal, BTypes.typeByte);
             }
-            return ((DecimalValue) sourceVal).byteValue();
+            return ((DecimalValue) sourceVal).intValue();
         }
         throw errorFunc.get();
     }

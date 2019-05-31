@@ -50,8 +50,7 @@ public class InvocationParameterScopeResolver extends CursorPositionResolver {
         int nodeEndLine = zeroBasedPos.eLine;
         int nodeEndCol = zeroBasedPos.eCol;
 
-        if (this.isWithinScopeAfterLastParameterNode(node, treeVisitor, line, col, nodeEndLine, nodeEndCol)
-                || withinInvocationArguments(node, line, col, completionContext)) {
+        if (this.isWithinScopeAfterLastParameterNode(node, treeVisitor, line, col, nodeEndLine, nodeEndCol)) {
             Map<Name, Scope.ScopeEntry> visibleSymbolEntries =
                     treeVisitor.resolveAllVisibleSymbols(treeVisitor.getSymbolEnv());
             treeVisitor.populateSymbols(visibleSymbolEntries, treeVisitor.getSymbolEnv());

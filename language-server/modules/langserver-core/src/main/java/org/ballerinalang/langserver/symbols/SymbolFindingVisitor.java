@@ -45,7 +45,6 @@ import org.wso2.ballerinalang.compiler.tree.statements.BLangSimpleVariableDef;
 import org.wso2.ballerinalang.compiler.tree.types.BLangObjectTypeNode;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -187,10 +186,8 @@ public class SymbolFindingVisitor extends LSNodeVisitor {
     }
 
     private void addSymbol(BLangNode node, BSymbol balSymbol, SymbolKind kind) {
-        List<String> symbolNameComponents = Arrays.asList(balSymbol.getName().getValue().split("\\."));
-        String symbolName = CommonUtil.getLastItem(symbolNameComponents);
-        if ((query != null && !query.isEmpty() && !symbolName.startsWith(query))
-                || CommonUtil.isInvalidSymbol(balSymbol)) {
+        String symbolName = balSymbol.getName().getValue();
+        if (query != null && !query.isEmpty() && !symbolName.startsWith(query)) {
             return;
         }
         SymbolInformation lspSymbol = new SymbolInformation();

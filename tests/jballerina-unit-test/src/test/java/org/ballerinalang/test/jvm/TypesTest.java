@@ -22,7 +22,6 @@ import org.ballerinalang.model.types.BField;
 import org.ballerinalang.model.types.BRecordType;
 import org.ballerinalang.model.types.BTypes;
 import org.ballerinalang.model.values.BBoolean;
-import org.ballerinalang.model.values.BByte;
 import org.ballerinalang.model.values.BDecimal;
 import org.ballerinalang.model.values.BFloat;
 import org.ballerinalang.model.values.BInteger;
@@ -106,15 +105,15 @@ public class TypesTest {
     public void testByteValue() {
         BValue[] returns = BRunUtil.invoke(compileResult, "testByteValue", new BValue[] {});
         Assert.assertEquals(returns.length, 1);
-        Assert.assertSame(returns[0].getClass(), BByte.class);
-        BByte byteValue = (BByte) returns[0];
+        Assert.assertSame(returns[0].getClass(), BInteger.class);
+        BInteger byteValue = (BInteger) returns[0];
         Assert.assertEquals(byteValue.byteValue(), 34, "Invalid byte value returned.");
     }
 
     @Test(description = "Test byte value space")
     public void testByteValueSpace() {
         BValue[] returns = BRunUtil.invoke(compileResult, "testByteValueSpace", new BValue[] {});
-        BByte byteValue = (BByte) returns[0];
+        BInteger byteValue = (BInteger) returns[0];
         Assert.assertEquals(byteValue.byteValue(), 234, "Invalid byte value returned.");
     }
 
@@ -122,8 +121,8 @@ public class TypesTest {
     public void testByteDefaultValue() {
         BValue[] returns = BRunUtil.invoke(compileResult, "testByteDefaultValue");
         Assert.assertEquals(returns.length, 1);
-        Assert.assertSame(returns[0].getClass(), BByte.class);
-        BByte byteValue = (BByte) returns[0];
+        Assert.assertSame(returns[0].getClass(), BInteger.class);
+        BInteger byteValue = (BInteger) returns[0];
         Assert.assertEquals(byteValue.byteValue(), 0, "Invalid byte value returned.");
     }
 
@@ -142,8 +141,8 @@ public class TypesTest {
         BValue[] args = { new BInteger(input) };
         BValue[] returns = BRunUtil.invoke(compileResult, functionName, args);
         Assert.assertEquals(returns.length, 1);
-        Assert.assertSame(returns[0].getClass(), BByte.class);
-        BByte byteValue = (BByte) returns[0];
+        Assert.assertSame(returns[0].getClass(), BInteger.class);
+        BInteger byteValue = (BInteger) returns[0];
         Assert.assertEquals(byteValue.byteValue(), input, "Invalid byte value returned.");
     }
 
@@ -164,8 +163,8 @@ public class TypesTest {
         BValue[] args = { new BInteger(input) };
         BValue[] returns = BRunUtil.invoke(compileResult, "testIntToByteExplicitCast", args);
         Assert.assertEquals(returns.length, 1);
-        Assert.assertSame(returns[0].getClass(), BByte.class);
-        BByte bByte = (BByte) returns[0];
+        Assert.assertSame(returns[0].getClass(), BInteger.class);
+        BInteger bByte = (BInteger) returns[0];
         Assert.assertEquals(bByte.byteValue(), input, "Invalid byte value returned.");
     }
 
@@ -175,8 +174,8 @@ public class TypesTest {
         BValue[] args = { new BInteger(input) };
         BValue[] returns = BRunUtil.invoke(compileResult, "testIntToByteCast", args);
         Assert.assertEquals(returns.length, 1);
-        Assert.assertSame(returns[0].getClass(), BByte.class);
-        BByte bByte = (BByte) returns[0];
+        Assert.assertSame(returns[0].getClass(), BInteger.class);
+        BInteger bByte = (BInteger) returns[0];
         Assert.assertEquals(bByte.byteValue(), input, "Invalid byte value returned.");
     }
 

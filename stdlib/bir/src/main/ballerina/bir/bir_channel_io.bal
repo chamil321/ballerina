@@ -48,10 +48,6 @@ public type BirChannelReader object {
         return self.cp.floats[self.reader.readInt32()];
     }
 
-    public function readByteCpRef() returns byte {
-        return self.cp.bytes[self.reader.readInt32()];
-    }
-
     public function readModuleIDCpRef() returns ModuleID {
         return self.cp.packages[self.reader.readInt32()];
     }
