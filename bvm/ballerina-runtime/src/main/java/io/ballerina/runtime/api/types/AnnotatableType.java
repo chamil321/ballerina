@@ -32,4 +32,5 @@ public interface AnnotatableType extends Type {
 
     Object getAnnotation(BString pkg, BString annotName);
 
+    BString[] getAnnotationKeys();
 }

@@ -48,4 +48,8 @@ public abstract class BAnnotatableType extends BType implements AnnotatableType 
     public Object getAnnotation(BString pkg, BString annotName) {
         return this.annotations.get(StringUtils.fromString(pkg.getValue() + ":" + annotName.getValue()));
     }
+
+    public BString[] getAnnotationKeys() {
+        return this.annotations.getKeys();
+    }
 }

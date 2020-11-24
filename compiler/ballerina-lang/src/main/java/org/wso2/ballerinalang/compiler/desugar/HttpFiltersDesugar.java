@@ -59,6 +59,7 @@ import org.wso2.ballerinalang.compiler.tree.expressions.BLangExpression;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangGroupExpr;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangIndexBasedAccess;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangInvocation;
+import org.wso2.ballerinalang.compiler.tree.expressions.BLangListConstructorExpr;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangLiteral;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangRecordLiteral;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangSimpleVarRef;
@@ -119,12 +120,15 @@ public class HttpFiltersDesugar {
     private static final String HTTP_FILTERCONTEXT_VAR = "filterContext";
     private static final String FILTER_REQUEST_FUNCTION = "filterRequest";
     private static final String ANN_RESOURCE_CONFIG = "ResourceConfig";
+    private static final String ANN_RESOURCE_PARAM_CALLER_INFO = "CallerInfo";
+    private static final String ANN_RESOURCE_PARAM_PAYLOAD = "Payload";
     private static final String ANN_RESOURCE_ATTR_PATH = "path";
     private static final String ANN_RESOURCE_ATTR_WS_UPGRADE = "webSocketUpgrade";
     private static final String ANN_RESOURCE_ATTR_WS_UPGRADE_PATH = "upgradePath";
     private static final String ANN_RESOURCE_PARAM_ORDER_CONFIG = "ParamOrderConfig";
     private static final String ANN_RECORD_PARAM_ORDER_CONFIG = "HttpParamOrderConfig";
     private static final String ANN_FIELD_PATH_PARAM_ORDER = "pathParamOrder";
+    private static final String ANN_FIELD_ALL_PARAM_ORDER = "allParamOrder";
 
     private static final String ORG_NAME = "ballerina";
     private static final String PACKAGE_NAME = "http";
@@ -482,6 +486,41 @@ public class HttpFiltersDesugar {
     }
 
     private void addOrderParamConfig(BLangFunction resourceNode, SymbolEnv env) {
+
+        //TODO add config regardless of population ??? think
+        BLangRecordLiteral configLiteralNode = createAndGetConfigAnnotationLiteral(resourceNode, env);
+
+        if (configLiteralNode == null) {
+            return;
+        }
+
+        // Create allParamOrder record literal
+        BLangRecordLiteral.BLangRecordKeyValueField allParamOrderKeyValue =
+                (BLangRecordLiteral.BLangRecordKeyValueField) TreeBuilder.createRecordKeyValue();
+        configLiteralNode.fields.add(allParamOrderKeyValue);
+
+        BLangLiteral keyLiteral = (BLangLiteral) TreeBuilder.createLiteralExpression();
+        keyLiteral.value = ANN_FIELD_ALL_PARAM_ORDER;
+        keyLiteral.type = symTable.stringType;
+
+        BLangListConstructorExpr.BLangArrayLiteral paramOrderLiteralNode =
+                (BLangListConstructorExpr.BLangArrayLiteral) TreeBuilder.createArrayLiteralExpressionNode();
+        paramOrderLiteralNode.type = new BArrayType(symTable.stringType, symTable.arrayType.tsymbol);
+
+        allParamOrderKeyValue.key = new BLangRecordLiteral.BLangRecordKey(keyLiteral);
+        allParamOrderKeyValue.valueExpr = paramOrderLiteralNode;
+
+        // Adding addAllParamOrderConfigAnnotation
+        for (BLangSimpleVariable param : resourceNode.getParameters()) {
+            // Create a new literal value.
+            BLangLiteral paramKeyLiteral = (BLangLiteral) TreeBuilder.createLiteralExpression();
+            paramKeyLiteral.value = param.name;
+            paramKeyLiteral.type = symTable.stringType;
+            paramOrderLiteralNode.exprs.add(paramKeyLiteral);
+        }
+
+
+        // Adding addPathParamOrderConfigAnnotation
         List<RecordLiteralNode.RecordField> annotationValues = null;
         for (BLangAnnotationAttachment annotationAttachment : resourceNode.getAnnotationAttachments()) {
             if (ANN_RESOURCE_CONFIG.equals(annotationAttachment.getAnnotationName().getValue()) &&
@@ -502,15 +541,20 @@ public class HttpFiltersDesugar {
                 case ANN_RESOURCE_ATTR_WS_UPGRADE:
                     for (RecordLiteralNode.RecordField upgradeField : ((BLangRecordLiteral) expression).getFields()) {
                         if (getAnnotationFieldKey(upgradeField).equals(ANN_RESOURCE_ATTR_WS_UPGRADE_PATH)) {
-                            addParamOrderConfigAnnotation(resourceNode, upgradeField.isKeyValueField() ?
+
+                            BLangExpression bLangExpression = upgradeField.isKeyValueField() ?
                                     ((BLangRecordLiteral.BLangRecordKeyValueField) upgradeField).valueExpr :
-                                    (BLangRecordLiteral.BLangRecordVarNameField) upgradeField, env);
+                                    (BLangRecordLiteral.BLangRecordVarNameField) upgradeField;
+
+//                            addPathParamOrderConfigAnnotation(resourceNode, bLangExpression, env);
+                            createPathParamOrderLiteral(resourceNode, bLangExpression, configLiteralNode);
                             break;
                         }
                     }
                     break;
                 case ANN_RESOURCE_ATTR_PATH:
-                    addParamOrderConfigAnnotation(resourceNode, expression, env);
+//                    BLangRecordLiteral = addParamOrderConfigAnnotation(resourceNode, env);
+                    createPathParamOrderLiteral(resourceNode, expression, configLiteralNode);
                     break;
             }
         }
@@ -529,10 +573,10 @@ public class HttpFiltersDesugar {
         return parameters.size() > 2 && value.toString().contains("{") && value.toString().contains("}");
     }
 
-    private void addParamOrderConfigAnnotation(BLangFunction resourceNode, BLangExpression value, SymbolEnv env) {
-        if (!checkForPathParam(resourceNode.getParameters(), value)) {
-            return;
-        }
+    private BLangRecordLiteral createAndGetConfigAnnotationLiteral(BLangFunction resourceNode, SymbolEnv env) {
+//        if (!checkForPathParam(resourceNode.getParameters(), value)) {
+//            return;
+//        }
         Location location = resourceNode.pos;
         BLangAnnotationAttachment annoAttachment = (BLangAnnotationAttachment) TreeBuilder.createAnnotAttachmentNode();
         resourceNode.addAnnotationAttachment(annoAttachment);
@@ -540,7 +584,7 @@ public class HttpFiltersDesugar {
                 (PACKAGE_NAME), names.fromString(ANN_RESOURCE_PARAM_ORDER_CONFIG));
 
         if (annSymbol == symTable.notFoundSymbol) {
-            return;
+            return null;
         }
         if (annSymbol instanceof BAnnotationSymbol) {
             annoAttachment.annotationSymbol = (BAnnotationSymbol) annSymbol;
@@ -559,13 +603,17 @@ public class HttpFiltersDesugar {
         BSymbol annTypeSymbol = lookupMainSpaceSymbolInPackage(symResolver, resourceNode.pos, env, names.fromString
                 (PACKAGE_NAME), names.fromString(ANN_RECORD_PARAM_ORDER_CONFIG));
         if (annTypeSymbol == symTable.notFoundSymbol) {
-            return;
+            return null;
         }
         if (annTypeSymbol instanceof BStructureTypeSymbol) {
             bStructSymbol = (BStructureTypeSymbol) annTypeSymbol;
             literalNode.type = bStructSymbol.type;
         }
+        return literalNode;
+    }
 
+    private void createPathParamOrderLiteral(BLangFunction resourceNode, BLangExpression value,
+                                             BLangRecordLiteral literalNode) {
         // Create pathParamOrder record literal
         BLangRecordLiteral.BLangRecordKeyValueField pathParamOrderKeyValue =
                 (BLangRecordLiteral.BLangRecordKeyValueField) TreeBuilder.createRecordKeyValue();
@@ -613,7 +661,7 @@ public class HttpFiltersDesugar {
                     break;
                 case '}':
                     String token = path.substring(startIndex, pointerIndex);
-                    IntStream.range(2, parameters.size()).filter(i -> parameters.get(i).getName().getValue()
+                    IntStream.range(0, parameters.size()).filter(i -> parameters.get(i).getName().getValue()
                             .equals(token)).findFirst().ifPresent(i -> mapper.put(token, i));
                     break;
             }
