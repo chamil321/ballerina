@@ -20,6 +20,7 @@ package org.wso2.ballerinalang.compiler.desugar;
 import io.ballerina.tools.diagnostics.Location;
 import org.ballerinalang.model.TreeBuilder;
 import org.ballerinalang.model.tree.BlockNode;
+import org.ballerinalang.model.tree.IdentifierNode;
 import org.ballerinalang.model.tree.NodeKind;
 import org.wso2.ballerinalang.compiler.semantics.analyzer.SymbolResolver;
 import org.wso2.ballerinalang.compiler.semantics.model.SymbolEnv;
@@ -34,6 +35,7 @@ import org.wso2.ballerinalang.compiler.tree.BLangSimpleVariable;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangCheckedExpr;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangExpression;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangInvocation;
+import org.wso2.ballerinalang.compiler.tree.expressions.BLangListConstructorExpr;
 import org.wso2.ballerinalang.compiler.tree.expressions.BLangSimpleVarRef;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangBlockStmt;
 import org.wso2.ballerinalang.compiler.tree.statements.BLangExpressionStmt;
@@ -57,9 +59,9 @@ public class ServiceDesugar {
 
     private static final CompilerContext.Key<ServiceDesugar> SERVICE_DESUGAR_KEY = new CompilerContext.Key<>();
 
-    private static final String START_METHOD = "__start";
-    private static final String GRACEFUL_STOP = "__gracefulStop";
-    private static final String ATTACH_METHOD = "__attach";
+    private static final String START_METHOD = "start";
+    private static final String GRACEFUL_STOP = "gracefulStop";
+    private static final String ATTACH_METHOD = "attach";
     private static final String LISTENER = "$LISTENER";
 
     private final SymbolTable symTable;
@@ -102,7 +104,7 @@ public class ServiceDesugar {
             SymbolEnv env, String method) {
         // This method will generate and add following statement to give life cycle function.
         //
-        //  _ = [check] var.__start/__stop();
+        //  _ = [check] var.start/stop();
         //
 
         final Location pos = variable.pos;
@@ -167,6 +169,18 @@ public class ServiceDesugar {
             // Create method invocation
             List<BLangExpression> args = new ArrayList<>();
             args.add(ASTBuilderUtil.createVariableRef(pos, service.serviceVariable.symbol));
+
+            if (service.getServiceNameLiteral() == null) {
+                BLangListConstructorExpr.BLangArrayLiteral arrayLiteral =
+                        ASTBuilderUtil.createEmptyArrayLiteral(service.getPosition(), symTable.arrayStringType);
+                for (IdentifierNode path : service.getAbsolutePath()) {
+                    var literal = ASTBuilderUtil.createLiteral(path.getPosition(), symTable.stringType, path.getValue());
+                    arrayLiteral.exprs.add(literal);
+                }
+                args.add(arrayLiteral);
+            } else {
+                args.add((BLangExpression) service.getServiceNameLiteral());
+            }
 
             addMethodInvocation(pos, listenerVarRef, methodRef, args, attachments);
         }

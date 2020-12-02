@@ -30,6 +30,7 @@ import io.ballerina.runtime.api.values.BFuture;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.internal.values.ArrayValue;
+import io.ballerina.runtime.internal.values.ArrayValueImpl;
 
 import java.util.HashMap;
 
@@ -42,6 +43,7 @@ public class ServiceValue {
     private static BObject service;
     private static BObject listener;
     private static boolean started;
+    private static String[] names;
 
     public static BFuture callMethod(Environment env, BObject l, BString name) {
         BFuture k = env.getRuntime().invokeMethodAsync(l, name.getValue(), null, null, null, new HashMap<>(),
@@ -83,8 +85,20 @@ public class ServiceValue {
         return null;
     }
 
-    public static Object attach(BObject servObj) {
+    public static Object attach(BObject servObj, Object name) {
         ServiceValue.service = servObj;
+        if (name == null) {
+            names = null;
+        } else if (name instanceof BString) {
+            names = new String[1];
+            names[0] = ((BString) name).getValue();
+        } else {
+            BArray array = (BArray) name;
+            names = new String[array.size()];
+            for(int i = 0; i < array.size(); i++) {
+                names[i] = array.getBString(i).getValue();
+            }
+        }
         return null;
     }
 
@@ -102,6 +116,7 @@ public class ServiceValue {
         ServiceValue.service = null;
         ServiceValue.listener = null;
         ServiceValue.started = false;
+        ServiceValue.names = new String[0];
     }
 
     public static BObject getListener() {
@@ -110,5 +125,10 @@ public class ServiceValue {
 
     public static BObject getService() {
         return ServiceValue.service;
+    }
+
+    public static BArray getServicePath() {
+        BArray ar = new ArrayValueImpl(names);
+        return ar;
     }
 }

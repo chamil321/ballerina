@@ -18,6 +18,7 @@
 package org.ballerinalang.model.tree;
 
 import org.ballerinalang.model.tree.expressions.ExpressionNode;
+import org.ballerinalang.model.tree.expressions.LiteralNode;
 
 import java.util.List;
 
@@ -39,6 +40,8 @@ public interface ServiceNode extends AnnotatableNode, DocumentableNode, TopLevel
 
     ClassDefinition getServiceClass();
 
-    List<String> getAbsolutePath();
+    List<IdentifierNode> getAbsolutePath();
+
+    LiteralNode getServiceNameLiteral();
 
 }
